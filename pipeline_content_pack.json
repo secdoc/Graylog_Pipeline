@@ -1,0 +1,1937 @@
+{
+  "v": 1,
+  "id": "8c7eaecf-e9f0-400e-ae30-7021deb92579",
+  "rev": 1,
+  "name": "Pipeline",
+  "summary": "Piipeline and Pipeline Rules",
+  "description": "",
+  "vendor": "secdoc",
+  "url": "",
+  "parameters": [],
+  "entities": [
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "972d59f7-811e-4163-8563-ed51b1aa03be",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "dst-ip threat intel"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "dst-ip threat intel"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"dst-ip threat intel\"\nwhen\n  has_field(\"nf_dst_address\") && ! in_private_net(to_string($message.dst_ip)) \nthen\nlet dst_addr_intel = threat_intel_lookup_ip(to_string($message.nf_dst_address), \"dst_addr\");\nset_fields(dst_addr_intel);\n\nlet dns_question_intel = threat_intel_lookup_domain(to_string($message.dns_question), \"dns_question\");\nset_fields(dns_question_intel);\n\nlet whois_intel = whois_lookup_ip(to_string($message.dst_addr), \"dst_addr\");\nset_fields(whois_intel);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "a797cfd1-f600-4e93-8655-633c11229629",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "parse_dnsmasq_blacklist_log"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"parse_dnsmasq_blacklist_log\"\nwhen\n    has_field(\"message\")\nthen\n    let message = to_string($message.message);\n\n    // Regular expressions for different log parts\n    let regex_timestamp_host = \"^<\\\\d+>(\\\\w+\\\\s+\\\\d+\\\\s\\\\d+:\\\\d+:\\\\d+)\\\\s(\\\\S+)\\\\s\";\n    let regex_dnsmasq_process = \"dnsmasq\\\\[(\\\\d+)\\\\]:\\\\s\";\n    let regex_action_domain = \"(regex blacklisted|gravity blocked)\\\\s(\\\\S+)\\\\s\";\n    let regex_ip = \"is\\\\s(\\\\S+)$\";\n\n    // Extracting fields using regex\n    let timestamp_host_match = regex(regex_timestamp_host, message);\n    let dnsmasq_process_match = regex(regex_dnsmasq_process, message);\n    let action_domain_match = regex(regex_action_domain, message);\n    let ip_match = regex(regex_ip, message);\n\n    // Setting the fields if regex matches\n    set_field(\"timestamp\", timestamp_host_match[\"0\"]);\n    set_field(\"host\", timestamp_host_match[\"1\"]);\n    set_field(\"process_id\", to_long(dnsmasq_process_match[\"0\"]));\n    set_field(\"action\", action_domain_match[\"0\"]);\n    set_field(\"blacklisted_domain\", action_domain_match[\"1\"]);\n    set_field(\"resolved_ip\", ip_match[\"0\"]);\n    \nend\n"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "d983c394-563a-4d22-b52b-f77f8553ea56",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "src-ip threat intel"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "src-ip threat intel"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"src-ip threat intel\"\nwhen\n has_field(\"nf_src_address\") && ! in_private_net(to_string($message.src_ip))  \nthen\nlet src_addr_intel = threat_intel_lookup_ip(to_string($message.nf_src_address), \"nf_src_address\");\nset_fields(src_addr_intel);\n\nlet dns_question_intel = threat_intel_lookup_domain(to_string($message.dns_question), \"dns_question\");\nset_fields(dns_question_intel);\n\nlet whois_intel = whois_lookup_ip(to_string($message.nf_src_address), \"nf_src_addressr\");\nset_fields(whois_intel);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "823c2f35-a7be-4466-9125-35070725fe98",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "zenlogparser"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "zen log parser"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"zenlogparser\" \nwhen\n  contains(to_string($message.message), \"gambit.secdoc.tech zenarmor\")\nthen\n  let parsedData = regex(\"^.*data=(\\\\{.*\\\\})$\", to_string($message.message));\n  let parsedFields = parse_json(to_string(parsedData,\"0\"));\n  set_fields(to_map(parsedFields));\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "db9489a3-1c31-4dd8-9b10-5aed19bad0b2",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "parse_zenarmor_json_logs"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"parse_zenarmor_json_logs\"\nwhen\n    has_field(\"message\")\nthen\n    let json = parse_json(to_string($message.message));\n    let map = to_map(json);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline",
+        "version": "1"
+      },
+      "id": "0d28a6e7-cf11-406c-8124-43d1e281d621",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "OPNSense/filterlog Threat"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "OPNSense/filterlog Threat"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "pipeline \"OPNSense/filterlog Threat\"\nstage 1 match either\nrule \"filterlog src-ip threat intel\"\nstage 2 match either\nrule \"filterlog dst-ip threat intel\"\nstage 3 match either\nrule \"alien vault dst ip\"\nstage 4 match either\nrule \"alien vault src ip\"\nstage 5 match either\nrule \"inflate threat intel results\"\nstage 0 match either\nend"
+        },
+        "connected_streams": [
+          {
+            "@type": "string",
+            "@value": "24896482-31a0-4a62-ac65-74dff938959c"
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline",
+        "version": "1"
+      },
+      "id": "02520097-9dbd-4124-a799-c72b44460fd6",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "surricata"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "surricata"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "pipeline \"surricata\"\nstage 0 match either\nrule \"parse_suricata_logs\"\nstage 1 match either\nrule \"src-ip geoip lookup\"\nrule \"dst-ip geoip lookup\"\nstage 2 match either\nrule \"dst-ip threat intel\"\nrule \"src-ip threat intel\"\nend"
+        },
+        "connected_streams": [
+          {
+            "@type": "string",
+            "@value": "c615b08e-bb48-4b2a-8545-c190f93bac7f"
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "5f6bcaf2-9a67-46e8-bd67-ea7fd7da9721",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "filterlog dst-ip threat intel"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "filterlog dst-ip threat intel"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"filterlog dst-ip threat intel\"\nwhen\n  has_field(\"dst-ip\") && ! in_private_net(to_string($message.dst_ip)) \nthen\nlet dst_addr_intel = threat_intel_lookup_ip(to_string($message.dst_ip), \"dst_addr\");\nset_fields(dst_addr_intel);\n\nlet dns_question_intel = threat_intel_lookup_domain(to_string($message.dns_question), \"dns_question\");\nset_fields(dns_question_intel);\n\nlet whois_intel = whois_lookup_ip(to_string($message.dst_addr), \"dst_addr\");\nset_fields(whois_intel);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "f3f6af43-5cf2-4f05-be0c-c588cad555db",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "parse_netstat_log"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"parse_netstat_log\"\nwhen\n    has_field(\"message\")\nthen\n    let message = to_string($message.message);\n    let pattern = \"\\\\((?<agent_host>[^)]+)\\\\)\\\\s+(?<action>[^>]+)->(?<status>[^>]+)\";\n    let matches = regex(pattern, message);\n\n    set_field(\"agent_host\", matches[\"agent_host\"]);\n    set_field(\"action\", matches[\"action\"]);\n    set_field(\"status\", matches[\"status\"]);\nend\n"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "e46150e2-6633-4cf0-af8f-77c97ffbf28b",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "alien vault dst ip"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "alien vault - dst ip"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"alien vault dst ip\"\nwhen\n  has_field(\"message\")\nthen\nlet intel = otx_lookup_ip(to_string($message.dst_addr));\n// let intel = otx_lookup_domain(to_string($message.dns_question))\n\nset_field(\"threat_indicated\", intel.otx_threat_indicated);\nset_field(\"threat_ids\", intel.otx_threat_ids);\nset_field(\"threat_names\", intel.otx_threat_names);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "d8546aa8-9b5d-44d5-9005-c26f2111172d",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "parse_zenarmor_src_geoip_fields"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"parse_zenarmor_src_geoip_fields\"\nwhen\n    has_field(\"message\")\nthen\n    let json = parse_json(to_string($message.message));\n    let src_geoip_map = to_map(json.src_geoip);\n\n    set_field(\"src_geoip_timezone\", src_geoip_map.timezone);\n    set_field(\"src_geoip_continent_code\", src_geoip_map.continent_code);\n    set_field(\"src_geoip_city_name\", src_geoip_map.city_name);\n    set_field(\"src_geoip_country_name\", src_geoip_map.country_name);\n    set_field(\"src_geoip_latitude\", src_geoip_map.latitude);\n    set_field(\"src_geoip_longitude\", src_geoip_map.longitude);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "2873791c-1ebe-4c48-8023-7d21844d9927",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "parse_zenarmor_device_fields"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"parse_zenarmor_device_fields\"\nwhen\n    has_field(\"message\")\nthen\n    let json = parse_json(to_string($message.message));\n    let device_map = to_map(json.device);\n\n    set_field(\"device_id\", device_map.id);\n    set_field(\"device_name\", device_map.name);\n    set_field(\"device_category\", device_map.category);\n    set_field(\"device_vendor\", device_map.vendor);\n    set_field(\"device_os\", device_map.os);\n    set_field(\"device_osver\", device_map.osver);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "8dd27123-9e2e-4258-b161-145b5e3bf5a8",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "PiHole GeoIP Set"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"PiHole GeoIP Set\"\nwhen\n    has_field(\"dns_reply_ip\")\n&&  ! cidr_match(\"10.0.0.0/8\", to_ip($message.dns_reply_ip)) ||\n    ! cidr_match(\"172.16.0.0/12\", to_ip($message.dns_reply_ip)) ||\n    ! cidr_match(\"192.168.0.0/16\", to_ip($message.dns_reply_ip))\nthen\n    let geo = lookup(\"GeoLite2-City\",to_string($message.dns_reply_ip));\n    set_field(\"query_answer_geolocation\", geo[\"coordinates\"]);\n    set_field(\"query_answer_country_code\", geo[\"country\"].iso_code);\n    set_field(\"query_answer_country_name\", geo[\"country\"].names.en);\n    set_field(\"query_answer_city_name\", geo[\"city\"].names.en);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "852c5b89-e5ea-4253-93d1-22247cda4b4f",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "threatintel (dnsmasq)"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"threatintel (dnsmasq)\"\nwhen\n    has_field(\"dns_reply_ip\") OR has_field(\"dns_reply_domain\")\nthen\n\n  // Read the README!!\n  // https://github.com/Graylog2/graylog-plugin-threatintel\n\n  // first look up the IP that is in query_answer\n  let query_answer_intel = threat_intel_lookup_ip(to_string($message.dns_reply_ip), \"dns_reply_ip\");\n  set_fields(query_answer_intel);\n  \n  // look up DNS Requested Domain or Domain that is in response\n  let query_domain_intel = threat_intel_lookup_domain(to_string($message.dns_reply_domain), \"dns_reply_domain\");\n  set_fields(query_domain_intel);\n  \n  let whois_intel = whois_lookup_ip(to_string($message.dns_reply_ip), \"dns_reply_ip\");\n  set_fields(whois_intel);\n  \n  let intel = otx_lookup_ip(to_string($message.dns_reply_ip));\n  let intel = otx_lookup_domain(to_string($message.dns_reply_domain));\n\n  set_field(\"threat_indicated\", intel.otx_threat_indicated);\n  set_field(\"threat_ids\", intel.otx_threat_ids);\n  set_field(\"threat_names\", intel.otx_threat_names);\n  \n  // set debug mark\n  set_field(\"pipeline\", \"threatintel (1)\" );\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline",
+        "version": "1"
+      },
+      "id": "ab3db40f-500e-4e66-9d06-f93f7817698b",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "dhcp"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "dhcp"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "pipeline \"dhcp\"\nstage 0 match either\nrule \"parse_dhcp_logs\"\nend"
+        },
+        "connected_streams": [
+          {
+            "@type": "string",
+            "@value": "a5e167cb-22e4-4de2-a815-894f2ae47a2d"
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "2c11e2b3-a026-4f9f-9363-cff9b3b4672b",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "maltrail dst-ip threat intel"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "maltrail dst-ip threat intel"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"maltrail dst-ip threat intel\"\nwhen\n  has_field(\"dst\") && ! in_private_net(to_string($message.dst_ip)) \nthen\nlet dst_addr_intel = threat_intel_lookup_ip(to_string($message.dst), \"dst_addr\");\nset_fields(dst_addr_intel);\n\nlet dns_question_intel = threat_intel_lookup_domain(to_string($message.dns_question), \"dns_question\");\nset_fields(dns_question_intel);\n\nlet whois_intel = whois_lookup_ip(to_string($message.dst_addr), \"dst_addr\");\nset_fields(whois_intel);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline",
+        "version": "1"
+      },
+      "id": "28b37a6c-ff12-4353-8ea7-f4239028a9b3",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "opnsense_maltrail GeoIP"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "opnsense_maltrail GeoIP"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "pipeline \"opnsense_maltrail GeoIP\"\nstage 0 match either\nrule \"maltrail src-ip geoip lookup\"\nstage 1 match either\nrule \"maltrail dst-ip geoip lookup\"\nend"
+        },
+        "connected_streams": [
+          {
+            "@type": "string",
+            "@value": "b5761a09-3964-4172-9b9c-fa999f8b36ba"
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "ca088f0a-b191-4ff4-a5c1-44ae06a67233",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "parse_suricata_logs"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "suricata"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"parse_suricata_logs\"\nwhen\n    has_field(\"message\")\nthen\n    let message = to_string($message.message);\n\n    // Regular expressions for different log parts\n    let regex_host_process = \"^(\\\\S+)\\\\s+suricata\\\\[(\\\\d+)\\\\]:\\\\s\";\n    let regex_suricata_rule = \"\\\\[(\\\\d+:\\\\d+:\\\\d+)\\\\]\\\\s(.*?)\\\\s\\\\[Classification:\\\\s(.*?)\\\\]\\\\s\\\\[Priority:\\\\s(\\\\d+)\\\\]\";\n    let regex_protocol_traffic = \"\\\\{(.+?)\\\\}\\\\s(\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\.\\\\d+):(\\\\d+)\\\\s->\\\\s(\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\.\\\\d+):(\\\\d+)$\";\n\n    // Extracting fields using regex\n    let host_process_match = regex(regex_host_process, message);\n    let suricata_rule_match = regex(regex_suricata_rule, message);\n    let protocol_traffic_match = regex(regex_protocol_traffic, message);\n\n    // Setting the fields if regex matches\n    set_field(\"host\", host_process_match[\"0\"]);\n    set_field(\"process_id\", to_long(host_process_match[\"1\"]));\n    set_field(\"suricata_rule_id\", suricata_rule_match[\"1\"]); // Update the index to capture the rule ID\n    set_field(\"rule_description\", suricata_rule_match[\"2\"]); // Update the index to capture the rule description\n    set_field(\"classification\", suricata_rule_match[\"3\"]); // Update the index to capture the classification\n    set_field(\"priority\", to_long(suricata_rule_match[\"4\"]));\n    set_field(\"protocol\", protocol_traffic_match[\"1\"]); // Update the index to capture the protocol\n    set_field(\"src_ip\", protocol_traffic_match[\"2\"]); // Update the index to capture the source IP\n    set_field(\"src_port\", to_long(protocol_traffic_match[\"3\"])); // Update the index to capture the source port\n    set_field(\"dst_ip\", protocol_traffic_match[\"4\"]); // Update the index to capture the destination IP\n    set_field(\"dst_port\", to_long(protocol_traffic_match[\"5\"])); // Update the index to capture the destination port\n    \nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "61759bf1-0dbb-4eeb-bd56-b408b0cca0ac",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "alien vault src ip"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "alien vault - src ip"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"alien vault src ip\"\nwhen\n  has_field(\"message\")\nthen\nlet intel = otx_lookup_ip(to_string($message.src_addr));\n// let intel = otx_lookup_domain(to_string($message.dns_question))\n\nset_field(\"threat_indicated\", intel.otx_threat_indicated);\nset_field(\"threat_ids\", intel.otx_threat_ids);\nset_field(\"threat_names\", intel.otx_threat_names);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "51985faa-247b-4b26-a86c-fb32002d1f86",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "maltrail src-ip geoip lookup"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "maltrail src-ip geoip lookup"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"maltrail src-ip geoip lookup\"\nwhen\n has_field(\"src\") && ! in_private_net(to_string($message.src_ip))  \nthen\n  let geo = lookup(\"geoip-lookup\", to_string($message.src));\n  set_field(\"src_ip_geolocation\", geo[\"coordinates\"]);\n  set_field(\"src_ip_geo_country_code\", geo[\"country\"].iso_code);\n  set_field(\"src_ip_geo_country_name\", geo[\"country\"].names.en);\n  set_field(\"src_ip_geo_city_name\", geo[\"city\"].names.en); \nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "ed9892f3-b7f6-4966-b5e0-cdf7f4cdc8cb",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "maltrail src-ip threat intel"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "maltrail src-ip threat intel"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"maltrail src-ip threat intel\"\nwhen\n  has_field(\"src\") && ! in_private_net(to_string($message.src_ip)) \nthen\nlet src_addr_intel = threat_intel_lookup_ip(to_string($message.src), \"src_addr\");\nset_fields(src_addr_intel);\n\nlet dns_question_intel = threat_intel_lookup_domain(to_string($message.dns_question), \"dns_question\");\nset_fields(dns_question_intel);\n\nlet whois_intel = whois_lookup_ip(to_string($message.src_addr), \"src_addr\");\nset_fields(whois_intel);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline",
+        "version": "1"
+      },
+      "id": "07c5da7e-8864-40ca-af2d-288200ed64bb",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "OPNSense/filterlog GeoIP"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "OPNSense filter logs GeoIP"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "pipeline \"OPNSense/filterlog GeoIP\"\nstage 0 match either\nstage 1 match either\nrule \"filterlog dst-ip geoip lookup\"\nrule \"filterlog src-ip geoip lookup\"\nend"
+        },
+        "connected_streams": [
+          {
+            "@type": "string",
+            "@value": "24896482-31a0-4a62-ac65-74dff938959c"
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "b0d63335-ada2-4a90-9b34-748a207a28d3",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "filterlog src-ip geoip lookup"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "filterlog geoip lookup"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"filterlog src-ip geoip lookup\"\nwhen\n has_field(\"src-ip\") && ! in_private_net(to_string($message.src_ip))  \nthen\n  let geo = lookup(\"geoip-lookup\", to_string($message.src_ip));\n  set_field(\"src_ip_geolocation\", geo[\"coordinates\"]);\n  set_field(\"src_ip_geo_country_code\", geo[\"country\"].iso_code);\n  set_field(\"src_ip_geo_country_name\", geo[\"country\"].names.en);\n  set_field(\"src_ip_geo_city_name\", geo[\"city\"].names.en); \nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "e4000fe7-838c-46bb-9cc4-87f047cce5f6",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "parse_opnsense_filter_logs"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"parse_opnsense_filter_logs\"\nwhen\n    has_field(\"message\")\nthen\n    let message = to_string($message.message);\n\n    // Regular expression to parse the log\n    let pattern = \"filterlog\\\\[(\\\\d+)\\\\]:\\\\s(\\\\d+),,,([0-9a-f]+),([\\\\w\\\\d]+),match,(pass|block|nat),([a-z]+),(\\\\d+),(0x[\\\\da-f]+),,,(\\\\d+),(\\\\d+),\\\\d+,([A-Z]+),([\\\\d\\\\w]+),(\\\\d+),(\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\.\\\\d+),(\\\\d+\\\\.\\\\d+\\\\.\\\\d+\\\\.\\\\d+),(\\\\d+)?,(\\\\d+)?,.*\";\n    let matches = regex(pattern, message);\n\n    // Set fields if regex matches\n        set_field(\"process_id\", to_long(matches[\"0\"]));\n        set_field(\"rule_number\", to_long(matches[\"1\"]));\n        set_field(\"tracker_id\", matches[\"2\"]);\n        set_field(\"interface\", matches[\"3\"]);\n        set_field(\"action\", matches[\"4\"]);\n        set_field(\"direction\", matches[\"5\"]);\n        set_field(\"ip_version\", to_long(matches[\"6\"]));\n        set_field(\"protocol_id\", to_long(matches[\"8\"]));\n        set_field(\"protocol_name\", matches[\"9\"]);\n        set_field(\"length\", to_long(matches[\"10\"]));\n        set_field(\"src_ip\", matches[\"11\"]);\n        set_field(\"dst_ip\", matches[\"12\"]);\n        set_field(\"src_port\", to_long(matches[\"13\"]));\n        set_field(\"dst_port\", to_long(matches[\"14\"]));\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "bcf49329-361f-4589-85e5-ce4f8b53d5d8",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "dnsmasq clean message"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"dnsmasq clean message\"\nwhen\n     has_field(\"programname\") AND contains(to_string($message.programname), \"dnsmasq\")\nthen\n   let m = regex(\"^.+: (.+)$\", to_string($message.message));\n   let clean_message = m[\"0\"];\n  // Set a better message field without the prefix clutter.\n  set_field(\"message\", clean_message);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline",
+        "version": "1"
+      },
+      "id": "50f63d13-73fd-4860-8655-7db21f96f71e",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "GeoIP Lookup"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "GeoIP Lookup"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "pipeline \"GeoIP Lookup\"\nstage 0 match either\nstage 1 match either\nrule \"src-ip geoip lookup\"\nrule \"dst-ip geoip lookup\"\nend"
+        },
+        "connected_streams": [
+          {
+            "@type": "string",
+            "@value": "51344d13-9f34-4b99-bb04-eb9da689c3b1"
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "f08f7915-cc65-4391-b376-117186f64fb0",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "src-ip geoip lookup"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "netflow source"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"src-ip geoip lookup\"\nwhen\n has_field(\"nf_src_address\") && ! in_private_net(to_string($message.src_ip))  \nthen\n  let geo = lookup(\"geoip-lookup\", to_string($message.nf_src_address));\n  set_field(\"src_ip_geolocation\", geo[\"coordinates\"]);\n  set_field(\"src_ip_geo_country_code\", geo[\"country\"].iso_code);\n  set_field(\"src_ip_geo_country_name\", geo[\"country\"].names.en);\n  set_field(\"src_ip_geo_city_name\", geo[\"city\"].names.en); \nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "0b0d0654-d3c8-4769-a378-51b514299921",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "parse_zenarmor_dst_geoip_fields"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"parse_zenarmor_dst_geoip_fields\"\nwhen\n    has_field(\"message\")\nthen\n    let json = parse_json(to_string($message.message));\n    let dst_geoip_map = to_map(json.dst_geoip);\n\n    set_field(\"dst_geoip_timezone\", dst_geoip_map.timezone);\n    set_field(\"dst_geoip_continent_code\", dst_geoip_map.continent_code);\n    set_field(\"dst_geoip_city_name\", dst_geoip_map.city_name);\n    set_field(\"dst_geoip_country_name\", dst_geoip_map.country_name);\n    set_field(\"dst_geoip_latitude\", dst_geoip_map.latitude);\n    set_field(\"dst_geoip_longitude\", dst_geoip_map.longitude);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "b9fa132f-ccc1-452d-b0cf-69315c23499d",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "dnsmasq pihole list"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"dnsmasq pihole list\"\nwhen\n    has_field(\"application_name\") AND contains(to_string($message.application_name), \"silversurfer dnsmasq\")\nthen\n let message_field = to_string($message.message); \n\n // pihole GROK Pattern neeed to be present!\n // %{SYSLOGTIMESTAMP:query_timestamp} %{WORD: programname}\\[%{POSINT:procid}\\]: %{NOTSPACE:query_list} %{NOTSPACE:query_domain} is %{NOTSPACE:query_answer}\n\n let action = grok(pattern: \"%{PIHOLE}\", value: message_field, only_named_captures: true);\n set_fields(action);\n set_field(\"pipeline\", \"dnsmasq pihole list\");\n\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "551b93a4-9c96-49e6-918a-9e9068a53ada",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "parse_dnsmasq_logs"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "Pihole dnsmasq logs"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"parse_dnsmasq_logs\"\nwhen\n    has_field(\"message\")\nthen\n    let message = to_string($message.message);\n\n    // Regular expressions for different log parts\n    let regex_host = \"^\\\\w+\\\\s\\\\d+\\\\s\\\\d+:\\\\d+:\\\\d+\\\\s(\\\\S+)\\\\s\";\n    let regex_cached = \"cached\\\\s(\\\\S+)\\\\sis\\\\s(\\\\S+)\";\n    let regex_validation = \"validation\\\\sresult\\\\sis\\\\s(\\\\w+)\";\n    let regex_reply = \"reply\\\\s(\\\\S+)\\\\sis\\\\s(\\\\S+)\";\n    let regex_query = \"query\\\\[(\\\\w+)\\\\]\\\\s(\\\\S+)\\\\sfrom\\\\s(\\\\S+)\";\n    let regex_forwarded = \"forwarded\\\\s(\\\\S+)\\\\sto\\\\s(\\\\S+)\";\n\n    // Extracting fields using regex\n    let host_match = regex(regex_host, message);\n    let cached_match = regex(regex_cached, message);\n    let validation_match = regex(regex_validation, message);\n    let reply_match = regex(regex_reply, message);\n    let query_match = regex(regex_query, message);\n    let forwarded_match = regex(regex_forwarded, message);\n\n    // Setting the fields if regex matches\n    set_field(\"host\", host_match[\"0\"]);\n    set_field(\"dns_cached_domain\", cached_match[\"0\"]);\n    set_field(\"dns_cached_response\", cached_match[\"1\"]);\n    set_field(\"dns_validation_result\", validation_match[\"0\"]);\n    set_field(\"dns_reply_domain\", reply_match[\"0\"]);\n    set_field(\"dns_reply_ip\", reply_match[\"1\"]);\n    set_field(\"dns_query_type\", query_match[\"0\"]);\n    set_field(\"dns_query_domain\", query_match[\"1\"]);\n    set_field(\"dns_query_source_ip\", query_match[\"2\"]);\n    set_field(\"dns_forwarded_domain\", forwarded_match[\"0\"]);\n    set_field(\"dns_forwarded_to\", forwarded_match[\"1\"]);\n    \nend\n"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "7f43f741-c930-4424-a857-f29f5f2c42f6",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "maltrail dst-ip geoip lookup"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "maltrail dst-ip geoip lookup"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"maltrail dst-ip geoip lookup\"\nwhen\n  has_field(\"dst\") && ! in_private_net(to_string($message.dst_ip)) \nthen\n  let geo = lookup(\"geoip-lookup\", to_string($message.dst));\n  set_field(\"dst_ip_geolocation\", geo[\"coordinates\"]);\n  set_field(\"dst_ip_geo_country_code\", geo[\"country\"].iso_code);\n  set_field(\"dst_ip_geo_country_name\", geo[\"country\"].names.en);\n  set_field(\"dst_ip_geo_city_name\", geo[\"city\"].names.en);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline",
+        "version": "1"
+      },
+      "id": "8eb84154-64dc-419c-971c-041b50311805",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "pihole / dnsmasq"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "pipeline \"pihole / dnsmasq\"\nstage 0 match either\nrule \"PiHole GeoIP Set\"\nstage 1 match either\nrule \"threatintel (dnsmasq)\"\nrule \"threatintel (dnsmasq)2\"\nrule \"dnsmasq clean message\"\nstage 2 match either\nrule \"threatintel (2) inflate\"\nstage -1 match either\nrule \"dnsmasq split\"\nrule \"dnsmasq pihole list\"\nrule \"parse_dnsmasq_logs\"\nrule \"parse_dnsmasq_blacklist_log\"\nend"
+        },
+        "connected_streams": [
+          {
+            "@type": "string",
+            "@value": "10b4b447-b58b-4607-9095-493e902a46ba"
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "5600b29d-67d3-4a4a-abce-72482c1433a3",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "inflate threat intel results"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "inflate threat intel results"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"inflate threat intel results\"\nwhen\n  to_bool($message.src_threat_indicated) || to_bool($message.dst_threat_indicated)\nthen\n  set_field(\"threat_indicated\", true);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "d296531d-8a43-4ce3-96ee-b5323df8379a",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "filterlog dst-ip geoip lookup"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "filterlog dst-ip geoip lookup"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"filterlog dst-ip geoip lookup\"\nwhen\n  has_field(\"dst-ip\") && ! in_private_net(to_string($message.dst_ip))  \nthen\n  let geo = lookup(\"geoip-lookup\", to_string($message.dst_ip));\n  set_field(\"dst_ip_geolocation\", geo[\"coordinates\"]);\n  set_field(\"dst_ip_geo_country_code\", geo[\"country\"].iso_code);\n  set_field(\"dst_ip_geo_country_name\", geo[\"country\"].names.en);\n  set_field(\"dst_ip_geo_city_name\", geo[\"city\"].names.en);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline",
+        "version": "1"
+      },
+      "id": "395ead9c-7d64-4b7a-946d-4351d7b08421",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "zenarmor"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "zenarmor"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "pipeline \"zenarmor\"\nstage 0 match either\nrule \"parse_zenarmor_json_logs\"\nstage 1 match either\nrule \"parse_zenarmor_device_fields\"\nstage 2 match either\nrule \"parse_zenarmor_dst_geoip_fields\"\nstage 3 match either\nrule \"parse_zenarmor_src_geoip_fields\"\nstage 4 match either\nrule \"parse_zenarmor_tags_field\"\nend"
+        },
+        "connected_streams": [
+          {
+            "@type": "string",
+            "@value": "1070f381-6307-4c57-bae1-4be0e2caa763"
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline",
+        "version": "1"
+      },
+      "id": "ea87b302-689b-4b43-bc76-13214c51e6be",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "Threat Intel"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "Threat Intel"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "pipeline \"Threat Intel\"\nstage 0 match either\nstage 1 match either\nrule \"src-ip threat intel\"\nstage 2 match either\nrule \"src-ip threat intel\"\nstage 3 match either\nrule \"alien vault dst ip\"\nstage 4 match either\nrule \"alien vault src ip\"\nstage 5 match either\nrule \"inflate threat intel results\"\nend"
+        },
+        "connected_streams": [
+          {
+            "@type": "string",
+            "@value": "51344d13-9f34-4b99-bb04-eb9da689c3b1"
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "419c7a57-54b2-4b9a-8375-ca615693fcd1",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "filterlog src-ip threat intel"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "filterlog src-ip threat intel"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"filterlog src-ip threat intel\"\nwhen\n  has_field(\"src-ip\") && ! in_private_net(to_string($message.src_ip)) \nthen\nlet dst_addr_intel = threat_intel_lookup_ip(to_string($message.src_ip), \"src_addr\");\nset_fields(dst_addr_intel);\n\nlet dns_question_intel = threat_intel_lookup_domain(to_string($message.dns_question), \"dns_question\");\nset_fields(dns_question_intel);\n\nlet whois_intel = whois_lookup_ip(to_string($message.src_addr), \"src_addr\");\nset_fields(whois_intel);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "0e335871-03e7-4b05-9f9d-b5ab91f8ec01",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "parse_dhcp_logs"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "dhcp"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"parse_dhcp_logs\"\nwhen\n    has_field(\"message\")\nthen\n    let message = to_string($message.message);\n\n    // Regular expressions for different log parts\n    let regex_host_process = \"^(\\\\S+)\\\\s+dhcpd\\\\[(\\\\d+)\\\\]:\\\\s\";\n    let regex_dhcp_request = \"(DHCPACK|DHCPREQUEST|DHCPDISCOVER|DHCPOFFER|DHCPNAK)\\\\son\\\\s(\\\\S+)\";\n    let regex_mac_vlan = \"from\\\\s(\\\\S+)\\\\svia\\\\s(\\\\S+)$\";\n    let regex_mac_clientname_vlan = \"from\\\\s(\\\\S+)\\\\s\\\\((.*?)\\\\)\\\\svia\\\\s(\\\\S+)$\";\n\n    // Extracting fields using regex\n    let host_process_match = regex(regex_host_process, message);\n    let dhcp_request_match = regex(regex_dhcp_request, message);\n    let mac_vlan_match = regex(regex_mac_vlan, message);\n    let mac_clientname_vlan_match = regex(regex_mac_clientname_vlan, message);\n\n    // Setting the fields if regex matches\n    set_field(\"host\", host_process_match[\"0\"]);\n    set_field(\"process_id\", to_long(host_process_match[\"1\"]));\n    set_field(\"dhcp_request_type\", dhcp_request_match[\"0\"]);\n    set_field(\"requested_ip\", dhcp_request_match[\"1\"]);\n    set_field(\"client_mac\", mac_vlan_match[\"0\"]);\n    set_field(\"vlan\", mac_vlan_match[\"1\"]);\n    set_field(\"vlan\", mac_clientname_vlan_match[\"2\"]);\n    \nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "b503f80c-0ac7-4292-8bd6-ddc71f11a324",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "parse_vulnerability_data"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"parse_vulnerability_data\"\nwhen\n    has_field(\"message\")\nthen\n    let json_data = parse_json(to_string($message.message));\n    let vuln_map = to_map(json_data.vulnerability);\n\n    // Extracting package data\n    let package_data = to_map(vuln_map.package);\n    set_field(\"package_name\", package_data.name);\n    set_field(\"package_source\", package_data.source);\n    set_field(\"package_version\", package_data.version);\n    set_field(\"package_architecture\", package_data.architecture);\n    set_field(\"package_condition\", package_data.condition);\n\n    // Extracting other top-level fields\n    set_field(\"cve\", json_data.cve);\n    set_field(\"title\", json_data.title);\n    set_field(\"severity\", json_data.severity);\n    set_field(\"published_date\", json_data.published);\n    set_field(\"updated_date\", json_data.updated);\n    set_field(\"cwe_reference\", json_data.cwe_reference);\n    set_field(\"vulnerability_status\", json_data.status);\n    set_field(\"vulnerability_type\", json_data.type);\n\n    // Extracting CVSS data\n    let cvss_data = to_map(vuln_map.cvss.cvss3);\n    set_field(\"cvss_base_score\", cvss_data.base_score);\n    set_field(\"cvss_exploitability_score\", cvss_data.exploitability_score);\n    set_field(\"cvss_impact_score\", cvss_data.impact_score);\nend\n"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline",
+        "version": "1"
+      },
+      "id": "014da76c-76ab-4d6f-bf7d-ba884b401a8e",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "wazuh"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "wazah"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "pipeline \"wazuh\"\nstage 0 match either\nend"
+        },
+        "connected_streams": [
+          {
+            "@type": "string",
+            "@value": "d922420f-fd1b-4ac1-80c7-46381f9d84f7"
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "a17565c0-f6d7-44ac-87cb-3774939d5d05",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "dnsmasq split"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"dnsmasq split\"\nwhen\n    has_field(\"application_name\") AND contains(to_string($message.application_name), \"pihole\")\nthen\n let message_field = to_string($message.message); \n\n // DNSMASQ GROK Pattern neeed to be present!\n // %{SYSLOGTIMESTAMP:query_timestamp} %{WORD: programname}\\[%{POSINT:procid}\\]: %{WORD:query_action}(?:\\[%{WORD:query_type}\\]|%{SPACE}) %{NOTSPACE:query_domain} (?:from %{NOTSPACE:query_source}|is %{NOTSPACE:query_answer}|to %{NOTSPACE:query_target})\n \n\n let action = grok(pattern: \"%{DNSMASQ}\", value: message_field, only_named_captures: true);\n set_fields(action);\n set_field(\"pipeline\", \"dnsmasq split\");\n\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "8c81e1a9-7b07-4edf-abca-e9e14eaacc5f",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "threatintel (dnsmasq)2"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"threatintel (dnsmasq)2\"\nwhen\n    has_field(\"dns_cached_response\") OR has_field(\"dns_cached_domain\")\nthen\n\n  // Read the README!!\n  // https://github.com/Graylog2/graylog-plugin-threatintel\n\n  // first look up the IP that is in query_answer\n  let query_answer_intel = threat_intel_lookup_ip(to_string($message.dns_cached_response), \"dns_cached_response\");\n  set_fields(query_answer_intel);\n  \n  // look up DNS Requested Domain or Domain that is in response\n  let query_domain_intel = threat_intel_lookup_domain(to_string($message.dns_cached_domain), \"dns_cached_domain\");\n  set_fields(query_domain_intel);\n  \n  let whois_intel = whois_lookup_ip(to_string($message.dns_cached_response), \"dns_cached_response\");\n  set_fields(whois_intel);\n  \n  let intel = otx_lookup_ip(to_string($message.dns_cached_response));\n  let intel = otx_lookup_domain(to_string($message.dns_cached_domain));\n\n  set_field(\"threat_indicated\", intel.otx_threat_indicated);\n  set_field(\"threat_ids\", intel.otx_threat_ids);\n  set_field(\"threat_names\", intel.otx_threat_names);\n  \n  // set debug mark\n  set_field(\"pipeline\", \"threatintel (1)\" );\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline",
+        "version": "1"
+      },
+      "id": "fbbe69e0-8845-42ce-8234-f9b31a1a429e",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "opnsense_maltrail Threat"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "opnsense_maltrail Threat"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "pipeline \"opnsense_maltrail Threat\"\nstage 0 match either\nstage 1 match either\nrule \"maltrail src-ip threat intel\"\nstage 2 match either\nrule \"maltrail dst-ip threat intel\"\nstage 3 match either\nrule \"alien vault src ip\"\nstage 4 match either\nrule \"alien vault dst ip\"\nstage 5 match either\nrule \"inflate threat intel results\"\nend"
+        },
+        "connected_streams": [
+          {
+            "@type": "string",
+            "@value": "b5761a09-3964-4172-9b9c-fa999f8b36ba"
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "687f7438-a1bf-42d9-af6b-4cf060f2e1ba",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "dst-ip geoip lookup"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "netflow destination"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"dst-ip geoip lookup\"\nwhen\n  has_field(\"nf_dst_address\") && ! in_private_net(to_string($message.dst_ip)) \nthen\n  let geo = lookup(\"geoip-lookup\", to_string($message.nf_dst_address));\n  set_field(\"dst_ip_geolocation\", geo[\"coordinates\"]);\n  set_field(\"dst_ip_geo_country_code\", geo[\"country\"].iso_code);\n  set_field(\"dst_ip_geo_country_name\", geo[\"country\"].names.en);\n  set_field(\"dst_ip_geo_city_name\", geo[\"city\"].names.en);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "2050e84a-978a-4203-afa2-338ceea50b14",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "threatintel (2) inflate"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"threatintel (2) inflate\"\nwhen\n  to_bool($message.dns_reply_ip_threat_indicated) OR to_bool($message.dns_reply_domain_threat_indicated)\nthen\n  set_field(\"threat_indicated\", true);\n  \n  // set debug mark\n  set_field(\"pipeline\", \"threatintel (2)\" );\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "1183eb07-a6ae-46c9-919f-f01927799d77",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "parse_zenarmor_tags_field"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"parse_zenarmor_tags_field\"\nwhen\n    has_field(\"message\")\nthen\n    let json = parse_json(to_string($message.message));\n    set_field(\"tags\", to_string(json.tags));\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline",
+        "version": "1"
+      },
+      "id": "87db1b6d-b92c-4967-bdc3-1da1a15906b3",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "naxsi_reverse_proxy"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "Naxsi Reverse Proxy Logs"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "pipeline \"naxsi_reverse_proxy\"\nstage 0 match either\nend"
+        },
+        "connected_streams": [
+          {
+            "@type": "string",
+            "@value": "13d566d0-4c4c-42da-9237-9832a5e7be44"
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "stream",
+        "version": "1"
+      },
+      "id": "24896482-31a0-4a62-ac65-74dff938959c",
+      "data": {
+        "alarm_callbacks": [],
+        "outputs": [],
+        "remove_matches": {
+          "@type": "boolean",
+          "@value": true
+        },
+        "title": {
+          "@type": "string",
+          "@value": "OPNsense / filterlog"
+        },
+        "stream_rules": [
+          {
+            "type": {
+              "@type": "string",
+              "@value": "CONTAINS"
+            },
+            "field": {
+              "@type": "string",
+              "@value": "message"
+            },
+            "value": {
+              "@type": "string",
+              "@value": "filterlog"
+            },
+            "inverted": {
+              "@type": "boolean",
+              "@value": false
+            },
+            "description": {
+              "@type": "string",
+              "@value": ""
+            }
+          }
+        ],
+        "alert_conditions": [],
+        "matching_type": {
+          "@type": "string",
+          "@value": "AND"
+        },
+        "disabled": {
+          "@type": "boolean",
+          "@value": false
+        },
+        "description": {
+          "@type": "string",
+          "@value": "OPNsense filter logs"
+        },
+        "default_stream": {
+          "@type": "boolean",
+          "@value": false
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "stream",
+        "version": "1"
+      },
+      "id": "c615b08e-bb48-4b2a-8545-c190f93bac7f",
+      "data": {
+        "alarm_callbacks": [],
+        "outputs": [],
+        "remove_matches": {
+          "@type": "boolean",
+          "@value": true
+        },
+        "title": {
+          "@type": "string",
+          "@value": "surricata"
+        },
+        "stream_rules": [
+          {
+            "type": {
+              "@type": "string",
+              "@value": "REGEX"
+            },
+            "field": {
+              "@type": "string",
+              "@value": "application_name"
+            },
+            "value": {
+              "@type": "string",
+              "@value": "(surricata)"
+            },
+            "inverted": {
+              "@type": "boolean",
+              "@value": false
+            },
+            "description": {
+              "@type": "string",
+              "@value": ""
+            }
+          }
+        ],
+        "alert_conditions": [],
+        "matching_type": {
+          "@type": "string",
+          "@value": "AND"
+        },
+        "disabled": {
+          "@type": "boolean",
+          "@value": false
+        },
+        "description": {
+          "@type": "string",
+          "@value": "surricata"
+        },
+        "default_stream": {
+          "@type": "boolean",
+          "@value": false
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "stream",
+        "version": "1"
+      },
+      "id": "a5e167cb-22e4-4de2-a815-894f2ae47a2d",
+      "data": {
+        "alarm_callbacks": [],
+        "outputs": [],
+        "remove_matches": {
+          "@type": "boolean",
+          "@value": true
+        },
+        "title": {
+          "@type": "string",
+          "@value": "dhcp"
+        },
+        "stream_rules": [
+          {
+            "type": {
+              "@type": "string",
+              "@value": "REGEX"
+            },
+            "field": {
+              "@type": "string",
+              "@value": "application_name"
+            },
+            "value": {
+              "@type": "string",
+              "@value": "(dhcpd)"
+            },
+            "inverted": {
+              "@type": "boolean",
+              "@value": false
+            },
+            "description": {
+              "@type": "string",
+              "@value": ""
+            }
+          }
+        ],
+        "alert_conditions": [],
+        "matching_type": {
+          "@type": "string",
+          "@value": "AND"
+        },
+        "disabled": {
+          "@type": "boolean",
+          "@value": false
+        },
+        "description": {
+          "@type": "string",
+          "@value": "dhcp"
+        },
+        "default_stream": {
+          "@type": "boolean",
+          "@value": false
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "stream",
+        "version": "1"
+      },
+      "id": "b5761a09-3964-4172-9b9c-fa999f8b36ba",
+      "data": {
+        "alarm_callbacks": [],
+        "outputs": [],
+        "remove_matches": {
+          "@type": "boolean",
+          "@value": true
+        },
+        "title": {
+          "@type": "string",
+          "@value": "opnsense_maltrail"
+        },
+        "stream_rules": [
+          {
+            "type": {
+              "@type": "string",
+              "@value": "EXACT"
+            },
+            "field": {
+              "@type": "string",
+              "@value": "gl2_source_input"
+            },
+            "value": {
+              "@type": "string",
+              "@value": "646ca2b2f75e3a714c8964f8"
+            },
+            "inverted": {
+              "@type": "boolean",
+              "@value": false
+            },
+            "description": {
+              "@type": "string",
+              "@value": ""
+            }
+          }
+        ],
+        "alert_conditions": [],
+        "matching_type": {
+          "@type": "string",
+          "@value": "AND"
+        },
+        "disabled": {
+          "@type": "boolean",
+          "@value": false
+        },
+        "description": {
+          "@type": "string",
+          "@value": "opnsense_maltrail"
+        },
+        "default_stream": {
+          "@type": "boolean",
+          "@value": false
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "stream",
+        "version": "1"
+      },
+      "id": "51344d13-9f34-4b99-bb04-eb9da689c3b1",
+      "data": {
+        "alarm_callbacks": [],
+        "outputs": [],
+        "remove_matches": {
+          "@type": "boolean",
+          "@value": true
+        },
+        "title": {
+          "@type": "string",
+          "@value": "opnsense_netflow"
+        },
+        "stream_rules": [
+          {
+            "type": {
+              "@type": "string",
+              "@value": "EXACT"
+            },
+            "field": {
+              "@type": "string",
+              "@value": "gl2_source_input"
+            },
+            "value": {
+              "@type": "string",
+              "@value": "64663b35b4873d45195d7e41"
+            },
+            "inverted": {
+              "@type": "boolean",
+              "@value": false
+            },
+            "description": {
+              "@type": "string",
+              "@value": ""
+            }
+          }
+        ],
+        "alert_conditions": [],
+        "matching_type": {
+          "@type": "string",
+          "@value": "AND"
+        },
+        "disabled": {
+          "@type": "boolean",
+          "@value": false
+        },
+        "description": {
+          "@type": "string",
+          "@value": "opnsense netflow"
+        },
+        "default_stream": {
+          "@type": "boolean",
+          "@value": false
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "stream",
+        "version": "1"
+      },
+      "id": "10b4b447-b58b-4607-9095-493e902a46ba",
+      "data": {
+        "alarm_callbacks": [],
+        "outputs": [],
+        "remove_matches": {
+          "@type": "boolean",
+          "@value": true
+        },
+        "title": {
+          "@type": "string",
+          "@value": "pihiole"
+        },
+        "stream_rules": [
+          {
+            "type": {
+              "@type": "string",
+              "@value": "EXACT"
+            },
+            "field": {
+              "@type": "string",
+              "@value": "gl2_source_input"
+            },
+            "value": {
+              "@type": "string",
+              "@value": "6564214c9a7d3f02a4db1e34"
+            },
+            "inverted": {
+              "@type": "boolean",
+              "@value": false
+            },
+            "description": {
+              "@type": "string",
+              "@value": "6564214c9a7d3f02a4db1e34"
+            }
+          }
+        ],
+        "alert_conditions": [],
+        "matching_type": {
+          "@type": "string",
+          "@value": "AND"
+        },
+        "disabled": {
+          "@type": "boolean",
+          "@value": false
+        },
+        "description": {
+          "@type": "string",
+          "@value": "pihole"
+        },
+        "default_stream": {
+          "@type": "boolean",
+          "@value": false
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "stream",
+        "version": "1"
+      },
+      "id": "1070f381-6307-4c57-bae1-4be0e2caa763",
+      "data": {
+        "alarm_callbacks": [],
+        "outputs": [],
+        "remove_matches": {
+          "@type": "boolean",
+          "@value": true
+        },
+        "title": {
+          "@type": "string",
+          "@value": "zenarmor"
+        },
+        "stream_rules": [
+          {
+            "type": {
+              "@type": "string",
+              "@value": "EXACT"
+            },
+            "field": {
+              "@type": "string",
+              "@value": "gl2_source_input"
+            },
+            "value": {
+              "@type": "string",
+              "@value": "646cc0edf75e3a714c8a7526"
+            },
+            "inverted": {
+              "@type": "boolean",
+              "@value": false
+            },
+            "description": {
+              "@type": "string",
+              "@value": ""
+            }
+          }
+        ],
+        "alert_conditions": [],
+        "matching_type": {
+          "@type": "string",
+          "@value": "AND"
+        },
+        "disabled": {
+          "@type": "boolean",
+          "@value": false
+        },
+        "description": {
+          "@type": "string",
+          "@value": "zenarmor"
+        },
+        "default_stream": {
+          "@type": "boolean",
+          "@value": false
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "stream",
+        "version": "1"
+      },
+      "id": "d922420f-fd1b-4ac1-80c7-46381f9d84f7",
+      "data": {
+        "alarm_callbacks": [],
+        "outputs": [],
+        "remove_matches": {
+          "@type": "boolean",
+          "@value": true
+        },
+        "title": {
+          "@type": "string",
+          "@value": "wazah"
+        },
+        "stream_rules": [
+          {
+            "type": {
+              "@type": "string",
+              "@value": "EXACT"
+            },
+            "field": {
+              "@type": "string",
+              "@value": "gl2_source_input"
+            },
+            "value": {
+              "@type": "string",
+              "@value": "65776dd41bc09460c8f43833"
+            },
+            "inverted": {
+              "@type": "boolean",
+              "@value": false
+            },
+            "description": {
+              "@type": "string",
+              "@value": "wazuh"
+            }
+          }
+        ],
+        "alert_conditions": [],
+        "matching_type": {
+          "@type": "string",
+          "@value": "OR"
+        },
+        "disabled": {
+          "@type": "boolean",
+          "@value": false
+        },
+        "description": {
+          "@type": "string",
+          "@value": "wazah"
+        },
+        "default_stream": {
+          "@type": "boolean",
+          "@value": false
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=5.2.2+8eab621"
+        }
+      ]
+    }
+  ]
+}
