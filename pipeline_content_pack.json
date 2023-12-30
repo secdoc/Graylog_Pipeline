@@ -193,15 +193,15 @@
       "data": {
         "title": {
           "@type": "string",
-          "@value": "surricata"
+          "@value": "suricata"
         },
         "description": {
           "@type": "string",
-          "@value": "surricata"
+          "@value": "suricata"
         },
         "source": {
           "@type": "string",
-          "@value": "pipeline \"surricata\"\nstage 0 match either\nrule \"parse_suricata_logs\"\nstage 1 match either\nrule \"src-ip geoip lookup\"\nrule \"dst-ip geoip lookup\"\nstage 2 match either\nrule \"dst-ip threat intel\"\nrule \"src-ip threat intel\"\nend"
+          "@value": "pipeline \"suricata\"\nstage 0 match either\nrule \"parse_suricata_logs\"\nstage 1 match either\nrule \"src-ip geoip lookup\"\nrule \"dst-ip geoip lookup\"\nstage 2 match either\nrule \"dst-ip threat intel\"\nrule \"src-ip threat intel\"\nend"
         },
         "connected_streams": [
           {
@@ -1480,7 +1480,7 @@
         },
         "title": {
           "@type": "string",
-          "@value": "surricata"
+          "@value": "suricata"
         },
         "stream_rules": [
           {
@@ -1494,7 +1494,7 @@
             },
             "value": {
               "@type": "string",
-              "@value": "(surricata)"
+              "@value": "(suricata)"
             },
             "inverted": {
               "@type": "boolean",
@@ -1517,7 +1517,7 @@
         },
         "description": {
           "@type": "string",
-          "@value": "surricata"
+          "@value": "suricata"
         },
         "default_stream": {
           "@type": "boolean",
